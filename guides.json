@@ -5,8 +5,8 @@
       "icon": "https://raw.githubusercontent.com/MickeyG-Dev/rogueguides/main/icons/spoofer.png",
       "guides": [
         {
-          "slug": "ghost-temporary-spoofer",
-          "title": "Ghost Temporary Spoofer Setup",
+          "slug": "torix-temporary-spoofer",
+          "title": "Torix Temporary Spoofer Setup",
           "author": "Rogue",
           "updated": "2026-07-12"
         },
