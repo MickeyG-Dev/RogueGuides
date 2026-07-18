@@ -1,0 +1,535 @@
+{# ============================================================
+   ROGUE — HELP CENTRE / SETUP GUIDES
+   Single SellAuth page. Handles both the index and individual
+   guides via ?g=<slug>. Content is fetched from GUIDES_BASE.
+   ============================================================ #}
+
+<div class="rg-guides" id="rgGuides">
+
+  <!-- ============ INDEX VIEW ============ -->
+  <div data-view="index" hidden>
+    <header class="rg-pagehead">
+      <h1 class="rg-pagehead__title">Setup Guides</h1>
+      <p class="rg-pagehead__blurb">Installation walkthroughs and fixes for every product.</p>
+      <div class="rg-search">
+        <input type="search" id="rgSearch" placeholder="Search guides…" autocomplete="off" aria-label="Search guides">
+      </div>
+    </header>
+
+    <div id="rgIndexBody"></div>
+  </div>
+
+  <!-- ============ GUIDE VIEW ============ -->
+  <div data-view="guide" hidden>
+    <a class="rg-back" href="?" data-nav="">&larr; All guides</a>
+    <article class="rg-article">
+      <header class="rg-article__head">
+        <span class="rg-article__cat" id="rgArtCat"></span>
+        <h1 class="rg-article__title" id="rgArtTitle"></h1>
+        <div class="rg-article__meta" id="rgArtMeta"></div>
+      </header>
+      <div class="rg-article__body" id="rgArtBody"></div>
+    </article>
+  </div>
+
+  <!-- ============ STATUS ============ -->
+  <div data-view="status" hidden>
+    <div class="rg-status" id="rgStatus"></div>
+  </div>
+
+</div>
+
+
+<script>
+(function () {
+  "use strict";
+
+  /* ==========================================================
+     CONFIG — point this at your guides repo
+     Expected layout:
+       <base>/guides.json
+       <base>/guides/<slug>.md
+     ========================================================== */
+  var CFG = {
+    base: "https://raw.githubusercontent.com/MickeyG-Dev/rogue-guides/main",
+    indexFile: "guides.json"
+  };
+
+  var root   = document.getElementById("rgGuides");
+  var views  = {};
+  ["index", "guide", "status"].forEach(function (n) {
+    views[n] = root.querySelector('[data-view="' + n + '"]');
+  });
+
+  var INDEX = null;
+
+  /* ---------- helpers ---------- */
+  function show(name) {
+    Object.keys(views).forEach(function (n) { views[n].hidden = (n !== name); });
+  }
+  function status(msg, isError) {
+    var el = document.getElementById("rgStatus");
+    el.textContent = msg;
+    el.className = "rg-status" + (isError ? " is-error" : "");
+    show("status");
+  }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function slugFromUrl() {
+    return new URLSearchParams(location.search).get("g") || "";
+  }
+
+  /* ==========================================================
+     MARKDOWN RENDERER
+     Supports: # headings, **bold**, *italic*, `code`,
+     ```fenced blocks```, - lists, 1. lists, > callouts,
+     images, links, --- rules, and | tables |
+     ========================================================== */
+  function md(src) {
+    var blocks = [];
+
+    // pull fenced code out first so nothing else touches it
+    src = src.replace(/```(\w*)\n([\s\S]*?)```/g, function (_, lang, code) {
+      blocks.push(
+        '<div class="rg-code">' +
+          '<button class="rg-code__copy" type="button">Copy</button>' +
+          '<pre><code>' + esc(code.replace(/\n$/, "")) + "</code></pre>" +
+        "</div>"
+      );
+      return "\u0000BLOCK" + (blocks.length - 1) + "\u0000";
+    });
+
+    function inline(t) {
+      return esc(t)
+        .replace(/`([^`]+)`/g, "<code>$1</code>")
+        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g,
+          '<img src="$2" alt="$1" loading="lazy">')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g,
+          '<a href="$2" target="_blank" rel="noopener">$1</a>')
+        .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+        .replace(/(^|\W)\*([^*]+)\*/g, "$1<em>$2</em>");
+    }
+
+    var out = [];
+    var lines = src.split("\n");
+    var i = 0;
+
+    while (i < lines.length) {
+      var line = lines[i];
+
+      if (!line.trim()) { i++; continue; }
+
+      // restored code block
+      var ph = line.match(/^\u0000BLOCK(\d+)\u0000$/);
+      if (ph) { out.push(blocks[+ph[1]]); i++; continue; }
+
+      // heading
+      var h = line.match(/^(#{1,4})\s+(.*)$/);
+      if (h) {
+        var lvl = Math.min(h[1].length + 1, 4);
+        out.push("<h" + lvl + ">" + inline(h[2]) + "</h" + lvl + ">");
+        i++; continue;
+      }
+
+      // horizontal rule
+      if (/^(-{3,}|\*{3,})$/.test(line.trim())) { out.push("<hr>"); i++; continue; }
+
+      // callout / blockquote
+      if (/^>\s?/.test(line)) {
+        var q = [];
+        while (i < lines.length && /^>\s?/.test(lines[i])) {
+          q.push(lines[i].replace(/^>\s?/, "")); i++;
+        }
+        out.push('<blockquote>' + inline(q.join(" ")) + "</blockquote>");
+        continue;
+      }
+
+      // table
+      if (/^\|.*\|$/.test(line.trim()) && /^\|[\s:|-]+\|$/.test((lines[i + 1] || "").trim())) {
+        var cells = function (r) {
+          return r.trim().replace(/^\||\|$/g, "").split("|").map(function (c) { return c.trim(); });
+        };
+        var head = cells(lines[i]); i += 2;
+        var rows = [];
+        while (i < lines.length && /^\|.*\|$/.test(lines[i].trim())) { rows.push(cells(lines[i])); i++; }
+        out.push(
+          '<div class="rg-tablewrap"><table><thead><tr>' +
+          head.map(function (c) { return "<th>" + inline(c) + "</th>"; }).join("") +
+          "</tr></thead><tbody>" +
+          rows.map(function (r) {
+            return "<tr>" + r.map(function (c) { return "<td>" + inline(c) + "</td>"; }).join("") + "</tr>";
+          }).join("") +
+          "</tbody></table></div>"
+        );
+        continue;
+      }
+
+      // lists
+      if (/^\s*([-*]|\d+\.)\s+/.test(line)) {
+        var ordered = /^\s*\d+\./.test(line);
+        var items = [];
+        while (i < lines.length && /^\s*([-*]|\d+\.)\s+/.test(lines[i])) {
+          items.push(lines[i].replace(/^\s*([-*]|\d+\.)\s+/, "")); i++;
+        }
+        var tag = ordered ? "ol" : "ul";
+        out.push("<" + tag + ">" + items.map(function (t) {
+          return "<li>" + inline(t) + "</li>";
+        }).join("") + "</" + tag + ">");
+        continue;
+      }
+
+      // paragraph
+      var para = [];
+      while (i < lines.length && lines[i].trim() &&
+             !/^(#{1,4}\s|>|\s*([-*]|\d+\.)\s|\u0000BLOCK)/.test(lines[i])) {
+        para.push(lines[i]); i++;
+      }
+      // single newlines become <br> so bold pseudo-headings sit on their own line
+      out.push("<p>" + inline(para.join("\n")).replace(/\n/g, "<br>") + "</p>");
+    }
+
+    return out.join("\n");
+  }
+
+  /* ==========================================================
+     DATA
+     ========================================================== */
+  function loadIndex() {
+    if (INDEX) return Promise.resolve(INDEX);
+    return fetch(CFG.base + "/" + CFG.indexFile, { cache: "no-cache" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("index " + r.status);
+        return r.json();
+      })
+      .then(function (json) { INDEX = json; return json; });
+  }
+
+  function findGuide(slug) {
+    var found = null;
+    (INDEX.categories || []).forEach(function (cat) {
+      (cat.guides || []).forEach(function (g) {
+        if (g.slug === slug) found = { guide: g, category: cat };
+      });
+    });
+    return found;
+  }
+
+  /* ==========================================================
+     RENDER — INDEX
+     ========================================================== */
+  function renderIndex(filter) {
+    var q = (filter || "").trim().toLowerCase();
+    var html = "";
+    var totalShown = 0;
+
+    (INDEX.categories || []).forEach(function (cat) {
+      var guides = (cat.guides || []).filter(function (g) {
+        if (!q) return true;
+        return (g.title + " " + cat.name).toLowerCase().indexOf(q) !== -1;
+      });
+      if (!guides.length) return;
+      totalShown += guides.length;
+
+      html +=
+        '<li class="rg-forum"><div class="rg-forum__row">' +
+          '<span class="rg-forum__icon">' +
+            (cat.icon ? '<img src="' + esc(cat.icon) + '" alt="" loading="lazy">' : "") +
+          "</span>" +
+          '<div class="rg-forum__main">' +
+            '<h3 class="rg-forum__title">' + esc(cat.name) + "</h3>" +
+            '<ul class="rg-subs">' +
+              guides.map(function (g) {
+                return '<li><a href="?g=' + encodeURIComponent(g.slug) + '" data-nav="' + esc(g.slug) + '">' +
+                       esc(g.title) + "</a></li>";
+              }).join("") +
+            "</ul>" +
+          "</div>" +
+          '<div class="rg-forum__stats"><div class="rg-stat">' +
+            '<span class="rg-stat__num">' + guides.length + "</span>" +
+            '<span class="rg-stat__label">' + (guides.length === 1 ? "guide" : "guides") + "</span>" +
+          "</div></div>" +
+        "</div></li>";
+    });
+
+    document.getElementById("rgIndexBody").innerHTML = totalShown
+      ? '<section class="rg-forumbox"><h2 class="rg-forumbox__label">Categories</h2>' +
+        '<ol class="rg-forumlist">' + html + "</ol></section>"
+      : '<div class="rg-status">No guides match that search.</div>';
+  }
+
+  /* ==========================================================
+     RENDER — GUIDE
+     ========================================================== */
+  function renderGuide(slug) {
+    var hit = findGuide(slug);
+    if (!hit) { status("That guide doesn't exist. It may have been renamed.", true); return; }
+
+    status("Loading guide…");
+
+    fetch(CFG.base + "/guides/" + slug + ".md", { cache: "no-cache" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("body " + r.status);
+        return r.text();
+      })
+      .then(function (text) {
+        document.getElementById("rgArtCat").textContent   = hit.category.name;
+        document.getElementById("rgArtTitle").textContent = hit.guide.title;
+
+        var meta = [];
+        if (hit.guide.author)  meta.push("By " + hit.guide.author);
+        if (hit.guide.updated) meta.push("Updated " + hit.guide.updated);
+        document.getElementById("rgArtMeta").textContent = meta.join(" · ");
+
+        document.getElementById("rgArtBody").innerHTML = md(text);
+        show("guide");
+        window.scrollTo({ top: 0, behavior: "instant" });
+      })
+      .catch(function () {
+        status("Couldn't load that guide. Try again in a moment.", true);
+      });
+  }
+
+  /* ==========================================================
+     ROUTING
+     ========================================================== */
+  function route() {
+    var slug = slugFromUrl();
+    status("Loading…");
+
+    loadIndex()
+      .then(function () {
+        if (slug) { renderGuide(slug); }
+        else { renderIndex(document.getElementById("rgSearch").value); show("index"); }
+      })
+      .catch(function () {
+        status("Couldn't reach the guides library. Check back shortly.", true);
+      });
+  }
+
+  // intercept internal links so it behaves like a real page
+  root.addEventListener("click", function (e) {
+    var link = e.target.closest("[data-nav]");
+    if (!link) return;
+    e.preventDefault();
+    var slug = link.getAttribute("data-nav");
+    history.pushState({}, "", slug ? "?g=" + encodeURIComponent(slug) : location.pathname);
+    route();
+  });
+
+  window.addEventListener("popstate", route);
+
+  // search
+  document.getElementById("rgSearch").addEventListener("input", function (e) {
+    renderIndex(e.target.value);
+  });
+
+  // copy buttons on code blocks
+  root.addEventListener("click", function (e) {
+    var btn = e.target.closest(".rg-code__copy");
+    if (!btn) return;
+    var code = btn.parentElement.querySelector("code").textContent;
+    navigator.clipboard.writeText(code).then(function () {
+      btn.textContent = "Copied";
+      setTimeout(function () { btn.textContent = "Copy"; }, 1600);
+    });
+  });
+
+  route();
+})();
+</script>
+
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&family=Inter:wght@400;500;600&display=swap');
+
+.rg-guides {
+  --rg-accent: #e24b4a;
+  --rg-surface: #101216;
+  --rg-surface-2: #15181d;
+  --rg-line: rgba(255,255,255,.07);
+  --rg-text: #e8eaed;
+  --rg-muted: #8a9099;
+  --rg-radius: 12px;
+
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 32px 20px 80px;
+  color: var(--rg-text);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* ---------- header ---------- */
+.rg-pagehead {
+  position: relative;
+  background: var(--rg-surface);
+  border: 1px solid var(--rg-line);
+  border-radius: var(--rg-radius);
+  padding: 26px 28px 26px 32px;
+  margin-bottom: 22px;
+  overflow: hidden;
+}
+.rg-pagehead::before {
+  content: ""; position: absolute; inset: 0 auto 0 0;
+  width: 4px; background: var(--rg-accent);
+}
+.rg-pagehead__title {
+  font-family: 'Orbitron', sans-serif; font-weight: 700;
+  font-size: clamp(22px, 3vw, 30px); letter-spacing: .5px;
+  margin: 0; text-transform: uppercase;
+}
+.rg-pagehead__blurb { margin: 8px 0 0; color: var(--rg-muted); font-size: 14px; }
+
+.rg-search { margin-top: 18px; }
+.rg-search input {
+  width: 100%; padding: 11px 14px;
+  background: var(--rg-surface-2);
+  border: 1px solid var(--rg-line); border-radius: 8px;
+  color: var(--rg-text); font-size: 14px; font-family: inherit;
+}
+.rg-search input::placeholder { color: var(--rg-muted); }
+.rg-search input:focus {
+  outline: none; border-color: var(--rg-accent);
+  box-shadow: 0 0 0 3px rgba(226,75,74,.15);
+}
+
+/* ---------- list ---------- */
+.rg-forumbox {
+  background: var(--rg-surface); border: 1px solid var(--rg-line);
+  border-radius: var(--rg-radius); overflow: hidden;
+}
+.rg-forumbox__label {
+  font-family: 'Orbitron', sans-serif; font-size: 12px; font-weight: 500;
+  letter-spacing: 1.6px; text-transform: uppercase; color: var(--rg-muted);
+  margin: 0; padding: 16px 24px;
+  border-bottom: 1px solid var(--rg-line); background: var(--rg-surface-2);
+}
+.rg-forumlist { list-style: none; margin: 0; padding: 0; }
+.rg-forum + .rg-forum { border-top: 1px solid var(--rg-line); }
+.rg-forum__row {
+  display: grid; grid-template-columns: 56px minmax(0,1fr) 90px;
+  gap: 20px; align-items: start; padding: 20px 24px;
+}
+.rg-forum__icon {
+  display: block; width: 56px; height: 56px; border-radius: 10px;
+  overflow: hidden; background: var(--rg-surface-2); border: 1px solid var(--rg-line);
+}
+.rg-forum__icon img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rg-forum__title {
+  font-family: 'Orbitron', sans-serif; font-size: 15px; font-weight: 500;
+  letter-spacing: .4px; margin: 4px 0 0; color: var(--rg-text);
+}
+
+.rg-subs { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; padding: 0; }
+.rg-subs a {
+  display: inline-flex; align-items: center; padding: 6px 12px;
+  background: var(--rg-surface-2); border: 1px solid var(--rg-line);
+  border-radius: 999px; font-size: 12.5px; color: var(--rg-muted);
+  text-decoration: none; transition: border-color .18s, color .18s;
+}
+.rg-subs a:hover, .rg-subs a:focus-visible {
+  color: var(--rg-text); border-color: rgba(226,75,74,.55); outline: none;
+}
+
+.rg-forum__stats { padding-top: 4px; }
+.rg-stat { text-align: center; }
+.rg-stat__num {
+  display: block; font-family: 'Orbitron', sans-serif;
+  font-size: 17px; font-weight: 700; line-height: 1.2;
+}
+.rg-stat__label { display: block; font-size: 11px; color: var(--rg-muted); }
+
+/* ---------- article ---------- */
+.rg-back {
+  display: inline-block; margin-bottom: 18px; font-size: 13px;
+  color: var(--rg-muted); text-decoration: none;
+}
+.rg-back:hover { color: var(--rg-accent); }
+
+.rg-article {
+  background: var(--rg-surface); border: 1px solid var(--rg-line);
+  border-radius: var(--rg-radius); overflow: hidden;
+}
+.rg-article__head {
+  padding: 30px 34px 24px; border-bottom: 1px solid var(--rg-line);
+  background: var(--rg-surface-2);
+}
+.rg-article__cat {
+  display: inline-block; font-size: 11px; letter-spacing: 1.4px;
+  text-transform: uppercase; color: var(--rg-accent); margin-bottom: 10px;
+}
+.rg-article__title {
+  font-family: 'Orbitron', sans-serif; font-weight: 700;
+  font-size: clamp(20px, 2.6vw, 27px); margin: 0; line-height: 1.25;
+}
+.rg-article__meta { margin-top: 10px; font-size: 12.5px; color: var(--rg-muted); }
+
+.rg-article__body { padding: 30px 34px 40px; font-size: 15px; line-height: 1.75; }
+.rg-article__body h2 {
+  font-family: 'Orbitron', sans-serif; font-size: 18px; font-weight: 500;
+  margin: 34px 0 12px; padding-bottom: 8px; border-bottom: 1px solid var(--rg-line);
+}
+.rg-article__body h3 { font-size: 16px; font-weight: 600; margin: 26px 0 10px; }
+.rg-article__body h4 { font-size: 14px; font-weight: 600; margin: 20px 0 8px; color: var(--rg-muted); }
+.rg-article__body p { margin: 0 0 16px; }
+.rg-article__body ul, .rg-article__body ol { margin: 0 0 16px; padding-left: 22px; }
+.rg-article__body li { margin-bottom: 7px; }
+.rg-article__body a { color: var(--rg-accent); }
+.rg-article__body img {
+  max-width: 100%; height: auto; border-radius: 8px;
+  border: 1px solid var(--rg-line); margin: 8px 0;
+}
+.rg-article__body hr { border: 0; border-top: 1px solid var(--rg-line); margin: 30px 0; }
+.rg-article__body code {
+  background: var(--rg-surface-2); border: 1px solid var(--rg-line);
+  border-radius: 4px; padding: 2px 6px; font-size: 13px;
+}
+.rg-article__body blockquote {
+  margin: 0 0 18px; padding: 14px 18px;
+  background: rgba(226,75,74,.07);
+  border-left: 3px solid var(--rg-accent);
+  border-radius: 0 8px 8px 0; color: var(--rg-text);
+}
+
+.rg-code { position: relative; margin: 0 0 18px; }
+.rg-code pre {
+  background: #0a0b0d; border: 1px solid var(--rg-line);
+  border-radius: 8px; padding: 16px 18px; overflow-x: auto; margin: 0;
+}
+.rg-code code { background: none; border: 0; padding: 0; font-size: 13px; line-height: 1.6; }
+.rg-code__copy {
+  position: absolute; top: 10px; right: 10px;
+  background: var(--rg-surface-2); border: 1px solid var(--rg-line);
+  border-radius: 5px; color: var(--rg-muted);
+  font-size: 11px; padding: 4px 9px; cursor: pointer; font-family: inherit;
+}
+.rg-code__copy:hover { color: var(--rg-text); border-color: var(--rg-accent); }
+
+.rg-tablewrap { overflow-x: auto; margin: 0 0 18px; }
+.rg-article__body table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.rg-article__body th, .rg-article__body td {
+  padding: 10px 14px; border: 1px solid var(--rg-line); text-align: left;
+}
+.rg-article__body th { background: var(--rg-surface-2); font-weight: 600; }
+
+/* ---------- status ---------- */
+.rg-status {
+  padding: 44px 24px; text-align: center;
+  color: var(--rg-muted); font-size: 14px;
+  background: var(--rg-surface); border: 1px solid var(--rg-line);
+  border-radius: var(--rg-radius);
+}
+.rg-status.is-error { color: var(--rg-accent); }
+
+/* ---------- responsive ---------- */
+@media (max-width: 620px) {
+  .rg-forum__row { grid-template-columns: 44px minmax(0,1fr); padding: 16px; }
+  .rg-forum__icon { width: 44px; height: 44px; }
+  .rg-forum__stats { grid-column: 1 / -1; }
+  .rg-stat { text-align: left; }
+  .rg-article__head, .rg-article__body { padding-left: 20px; padding-right: 20px; }
+}
+@media (prefers-reduced-motion: reduce) { .rg-subs a { transition: none; } }
+</style>

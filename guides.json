@@ -1,0 +1,34 @@
+{
+  "categories": [
+    {
+      "name": "HWID Spoofers",
+      "icon": "https://raw.githubusercontent.com/MickeyG-Dev/rogue-guides/main/icons/spoofer.png",
+      "guides": [
+        {
+          "slug": "ghost-temporary-spoofer",
+          "title": "Ghost Temporary Spoofer Setup",
+          "author": "Rogue",
+          "updated": "2026-07-12"
+        },
+        {
+          "slug": "ghost-permanent-spoofer",
+          "title": "Ghost Permanent Spoofer Setup",
+          "author": "Rogue",
+          "updated": "2026-07-12"
+        }
+      ]
+    },
+    {
+      "name": "Apex Legends",
+      "icon": "https://raw.githubusercontent.com/MickeyG-Dev/rogue-guides/main/icons/apex.png",
+      "guides": [
+        {
+          "slug": "arcane-apex-setup",
+          "title": "Arcane Apex Legends Setup",
+          "author": "Rogue",
+          "updated": "2026-06-29"
+        }
+      ]
+    }
+  ]
+}
