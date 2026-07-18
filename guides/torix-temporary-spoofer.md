@@ -2,7 +2,7 @@
 *Download Torix: Temporary Spoofer*
 
 
-> **[⬇ Download Torix](https://mega.nz/file/bhAUDJJC#ODJ5JrhKUb-7fTFl9CRudBcb9r4W7W-WK1hbcZ4Fjb0)**
+> **[⬇ Download Torix](https://mickeyg-dev.github.io/Rogue-Download/)**
 
 ![Temporary spoofer download](https://raw.githubusercontent.com/MickeyG-Dev/rogueguides/main/images/torix.thumb.png)
 
