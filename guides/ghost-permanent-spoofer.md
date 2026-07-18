@@ -4,7 +4,7 @@ Spoofer_Ghost.webp
 
 ⬇ Download Ghost
 
-https://trixxware.com/uploads/monthly_2026_05/image.png.dd666c18f8d25b9c62941c917b00d3cf.png
+![Temporary spoofer download](https://raw.githubusercontent.com/MickeyG-Dev/rogueguides/main/images/Temp-spoofer.png)
 
 Important:
 Ghost is a temporary spoofer. Changes only apply to the current Windows session and automatically reset after a full system restart.
