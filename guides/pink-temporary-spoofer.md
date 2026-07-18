@@ -29,7 +29,7 @@ Setup Steps
 
  - Restart your PC and retry if spoofing fails. 
  - Ensure all games and launchers are closed. 
- - Run Torix with Administrator permissions. 
+ - Run Pink with Administrator permissions. 
  - Close unnecessary background applications.
  - Temporarily disable antivirus iffiles are blocked.
 
