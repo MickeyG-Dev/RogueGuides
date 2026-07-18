@@ -4,7 +4,7 @@ Spoofer_Torix.webp
 
 ⬇ Download Torix
 
-![Temporary spoofer download](https://raw.githubusercontent.com/MickeyG-Dev/rogueguides/main/images/torixspoofer.png)
+![Temporary spoof download](https://raw.githubusercontent.com/MickeyG-Dev/rogueguides/main/images/torixspoofer.png)
 
 Important:
 Torix is a temporary HWID spoofer. Changes apply only to the current session and automatically reset after a full system restart.
