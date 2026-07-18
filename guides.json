@@ -2,7 +2,7 @@
   "categories": [
     {
       "name": "HWID Spoofers",
-      "icon": "https://raw.githubusercontent.com/MickeyG-Dev/rogue-guides/main/icons/spoofer.png",
+      "icon": "https://raw.githubusercontent.com/MickeyG-Dev/rogueguides/main/icons/spoofer.png",
       "guides": [
         {
           "slug": "ghost-temporary-spoofer",
@@ -20,7 +20,7 @@
     },
     {
       "name": "Apex Legends",
-      "icon": "https://raw.githubusercontent.com/MickeyG-Dev/rogue-guides/main/icons/apex.png",
+      "icon": "https://raw.githubusercontent.com/MickeyG-Dev/rogueguides/main/icons/apex.png",
       "guides": [
         {
           "slug": "arcane-apex-setup",
