@@ -2,7 +2,7 @@
 *Download Pink: Temporary Spoofer*
 
 
-> **[⬇ Download Pink](https://mega.nz/file/3xow1LDC#OewWQmoCi2XsTfX7QB79zRDHWaFB-6UIQiK7KvUWx-8)**
+> **[⬇ Download Pink](https://mickeyg-dev.github.io/Rogue-Download/)**
 
 
 **Important:**
