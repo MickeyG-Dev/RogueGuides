@@ -19,6 +19,18 @@
       ]
     },
     {
+      "name": "8 Ball Pool",
+      "icon": "https://raw.githubusercontent.com/MickeyG-Dev/rogueguides/main/icons/apex.png",
+      "guides": [
+        {
+          "slug": "android-8-ball-pool",
+          "title": "Android 8 Ball Pool Setup",
+          "author": "Rogue",
+          "updated": "2026-06-29"
+        }
+      ]
+    },
+    {
       "name": "Apex Legends",
       "icon": "https://raw.githubusercontent.com/MickeyG-Dev/rogueguides/main/icons/apex.png",
       "guides": [
