@@ -8,7 +8,7 @@ This guide will help you correctly install, inject, troubleshoot, and use the An
 
 Download the latest Android 8 Ball Pool loader below. Always use the newest version, especially after game updates.
 
-![8-Ball-Pool-Android-1](https://i.postimg.cc/vBP1NfP3/Chat-GPT-Image-Jul-21-2026-05-22-07-PM.png)
+![8-Ball-Pool-Android-1](https://postimg.cc/TLDYyLvD)
 
 ### [DOWNLOAD LOADER](https://www.mediafire.com/file/y4zzlq5kxmsm652/AKLoader-3.7.7-%2528arm32_and_arm64%2529.apk/file)
 
