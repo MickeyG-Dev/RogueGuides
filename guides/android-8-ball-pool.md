@@ -35,7 +35,7 @@ Follow these steps in exact order. Skipping steps or launching applications inco
 1. Download the [AimKing Loader](https://www.mediafire.com/file/y4zzlq5kxmsm652/AKLoader-3.7.7-%2528arm32_and_arm64%2529.apk/file)
 2. Download the [AimKing Cheat](https://www.mediafire.com/file/mxvkqlhdb0uw05s/8-ball-pool_56.19.0%2528akloadernl%2529.apk/file)
 3. Open the AimKing loader and click **Register and Activate for SubKey**
-4. Redeem your license key (Subkey) — this can be found under the **Manage Purchases** tab of Trixxware
+4. Redeem your license key (Subkey) — this can be found under the **Manage Purchases** tab of Rogue Community
 5. Once logged in, launch the cheat through the loader
 
 ### Common Mistakes That Cause Issues
@@ -48,4 +48,4 @@ Follow these steps in exact order. Skipping steps or launching applications inco
 
 ## Support
 
-If you encounter any other problems, contact support through the website and provide screenshots of the issue whenever possible.
+If you encounter any other problems, contact support through the discord server and provide screenshots of the issue whenever possible.
